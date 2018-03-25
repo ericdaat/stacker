@@ -9,19 +9,20 @@ class Stacker(object):
         self._stacker_model = stacker_model
         self._n_folds = n_folds
 
-    def fill_df_with_fold_ids(self, df):
+    def _fill_df_with_fold_ids(self, df):
         df['fold_id'] = np.random.permutation((df.index % self._n_folds + 1).tolist())
 
         return df
 
-    def make_model_name(self, model):
+    def _make_model_name(self, model):
         return 'M_{0}'.format(type(model).__name__)
 
     def make_meta_df(self, df):
         meta = df.copy()
+        meta = self._fill_df_with_fold_ids(meta)
 
         for model_index, model in enumerate(self._model_array):
-            meta[self.make_model_name(model)] = np.nan
+            meta[self._make_model_name(model)] = np.nan
 
         return meta
 
@@ -39,14 +40,14 @@ class Stacker(object):
 
             for model in self._model_array:
                 model.fit(X_train, y_train)
-                test_fold[self.make_model_name(model)] = model.predict(X_test)
+                test_fold[self._make_model_name(model)] = model.predict(X_test)
                 folds_with_predictions.append(test_fold)
 
         return pd.concat(folds_with_predictions)
 
     def cross_val_train(self, filled_meta_df, input_features, labels):
         X = np.hstack([filled_meta_df[input_features],
-                       pd.concat([pd.get_dummies(filled_meta_df[self.make_model_name(model)])
+                       pd.concat([pd.get_dummies(filled_meta_df[self._make_model_name(model)])
                                   for model in self._model_array], axis=1)])
 
         y = filled_meta_df[labels]
@@ -58,7 +59,6 @@ class Stacker(object):
 
     def fit_predict(self, df, input_features, labels):
         train_meta = self.make_meta_df(df)
-        train_meta = self.fill_df_with_fold_ids(train_meta)
         train_meta = self.fill_train_meta_with_predictions(train_meta,
                                                            input_features=input_features,
                                                            labels=labels)
