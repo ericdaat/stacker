@@ -65,5 +65,3 @@ class Stacker(object):
         return self.cross_val_train(train_meta,
                                     input_features=input_features,
                                     labels=labels)
-
-
